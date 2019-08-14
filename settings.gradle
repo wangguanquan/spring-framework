@@ -5,6 +5,7 @@ include "spring-context"
 include "spring-context-support"
 include "spring-context-indexer"
 include "spring-core"
+include "spring-core-coroutines"
 include "spring-expression"
 include "spring-instrument"
 include "spring-jcl"
@@ -20,10 +21,6 @@ include "spring-webmvc"
 include "spring-webflux"
 include "spring-websocket"
 include "spring-framework-bom"
-
-// Exposes gradle buildSrc for IDE support
-include "buildSrc"
-rootProject.children.find{ it.name == "buildSrc" }.name = "spring-build-src"
 
 rootProject.name = "spring"
 rootProject.children.each {project ->

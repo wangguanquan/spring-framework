@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,8 +16,10 @@
 
 package org.springframework.messaging.rsocket;
 
+import java.nio.ByteBuffer;
+
 import io.netty.buffer.ByteBuf;
-import io.rsocket.Frame;
+import io.netty.buffer.Unpooled;
 import io.rsocket.Payload;
 import io.rsocket.util.ByteBufPayload;
 import io.rsocket.util.DefaultPayload;
@@ -27,7 +29,6 @@ import org.springframework.core.io.buffer.DataBufferFactory;
 import org.springframework.core.io.buffer.DefaultDataBuffer;
 import org.springframework.core.io.buffer.NettyDataBuffer;
 import org.springframework.core.io.buffer.NettyDataBufferFactory;
-import org.springframework.util.Assert;
 
 /**
  * Static utility methods to create {@link Payload} from {@link DataBuffer}s
@@ -36,7 +37,7 @@ import org.springframework.util.Assert;
  * @author Rossen Stoyanchev
  * @since 5.2
  */
-abstract class PayloadUtils {
+public abstract class PayloadUtils {
 
 	/**
 	 * Use this method to slice, retain and wrap the data portion of the
@@ -53,11 +54,9 @@ abstract class PayloadUtils {
 				ByteBuf byteBuf = payload.sliceData().retain();
 				return ((NettyDataBufferFactory) bufferFactory).wrap(byteBuf);
 			}
-
-			Assert.isTrue(!(payload instanceof ByteBufPayload) && !(payload instanceof Frame),
-					"NettyDataBufferFactory expected, actual: " + bufferFactory.getClass().getSimpleName());
-
-			return bufferFactory.wrap(payload.getData());
+			else {
+				return bufferFactory.wrap(payload.getData());
+			}
 		}
 		finally {
 			if (payload.refCnt() > 0) {
@@ -68,41 +67,42 @@ abstract class PayloadUtils {
 
 	/**
 	 * Create a Payload from the given metadata and data.
-	 * @param metadata the metadata part for the payload
+	 * <p>If at least one is {@link NettyDataBuffer} then {@link ByteBufPayload}
+	 * is created with either obtaining the underlying native {@link ByteBuf}
+	 * or using {@link Unpooled#wrappedBuffer(ByteBuffer...)} if necessary.
+	 * Otherwise, if both are {@link DefaultDataBuffer}, then
+	 * {@link DefaultPayload} is created.
 	 * @param data the data part for the payload
-	 * @return the created Payload
+	 * @param metadata the metadata part for the payload
+	 * @return the created payload
 	 */
-	public static Payload createPayload(DataBuffer metadata, DataBuffer data) {
-		if (metadata instanceof NettyDataBuffer && data instanceof NettyDataBuffer) {
-			return ByteBufPayload.create(
-					((NettyDataBuffer) data).getNativeBuffer(),
-					((NettyDataBuffer) metadata).getNativeBuffer());
-		}
-		else if (metadata instanceof DefaultDataBuffer && data instanceof DefaultDataBuffer) {
-			return DefaultPayload.create(
-					((DefaultDataBuffer) data).getNativeBuffer(),
-					((DefaultDataBuffer) metadata).getNativeBuffer());
-		}
-		else {
-			return DefaultPayload.create(data.asByteBuffer(), metadata.asByteBuffer());
-		}
+	public static Payload createPayload(DataBuffer data, DataBuffer metadata) {
+		return data instanceof NettyDataBuffer || metadata instanceof NettyDataBuffer ?
+				ByteBufPayload.create(asByteBuf(data), asByteBuf(metadata)) :
+				DefaultPayload.create(asByteBuffer(data), asByteBuffer(metadata));
 	}
 
 	/**
-	 * Create a Payload from the given data.
+	 * Create a Payload with data only. The created payload is
+	 * {@link ByteBufPayload} if the input is {@link NettyDataBuffer} or
+	 * otherwise it is {@link DefaultPayload}.
 	 * @param data the data part for the payload
-	 * @return the created Payload
+	 * @return created payload
 	 */
 	public static Payload createPayload(DataBuffer data) {
-		if (data instanceof NettyDataBuffer) {
-			return ByteBufPayload.create(((NettyDataBuffer) data).getNativeBuffer());
-		}
-		else if (data instanceof DefaultDataBuffer) {
-			return DefaultPayload.create(((DefaultDataBuffer) data).getNativeBuffer());
-		}
-		else {
-			return DefaultPayload.create(data.asByteBuffer());
-		}
+		return data instanceof NettyDataBuffer ?
+				ByteBufPayload.create(asByteBuf(data)) : DefaultPayload.create(asByteBuffer(data));
+	}
+
+
+	static ByteBuf asByteBuf(DataBuffer buffer) {
+		return buffer instanceof NettyDataBuffer ?
+				((NettyDataBuffer) buffer).getNativeBuffer() : Unpooled.wrappedBuffer(buffer.asByteBuffer());
+	}
+
+	private static ByteBuffer asByteBuffer(DataBuffer buffer) {
+		return buffer instanceof DefaultDataBuffer ?
+				((DefaultDataBuffer) buffer).getNativeBuffer() : buffer.asByteBuffer();
 	}
 
 }
