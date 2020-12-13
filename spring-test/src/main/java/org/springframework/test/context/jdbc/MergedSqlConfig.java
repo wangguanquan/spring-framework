@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2019 the original author or authors.
+ * Copyright 2002-2020 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,12 +19,12 @@ package org.springframework.test.context.jdbc;
 import java.lang.reflect.Array;
 import java.util.Arrays;
 
-import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.AnnotationAttributes;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.core.style.ToStringCreator;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
 import org.springframework.lang.Nullable;
+import org.springframework.test.context.TestContextAnnotationUtils;
 import org.springframework.test.context.jdbc.SqlConfig.ErrorMode;
 import org.springframework.test.context.jdbc.SqlConfig.TransactionMode;
 import org.springframework.util.Assert;
@@ -100,13 +100,14 @@ class MergedSqlConfig {
 		enforceCommentPrefixAliases(localAttributes);
 
 		// Get global attributes, if any.
-		AnnotationAttributes globalAttributes = AnnotatedElementUtils.findMergedAnnotationAttributes(
-				testClass, SqlConfig.class.getName(), false, false);
+		SqlConfig globalSqlConfig = TestContextAnnotationUtils.findMergedAnnotation(testClass, SqlConfig.class);
 
 		// Use local attributes only?
-		if (globalAttributes == null) {
+		if (globalSqlConfig == null) {
 			return localAttributes;
 		}
+
+		AnnotationAttributes globalAttributes = AnnotationUtils.getAnnotationAttributes(globalSqlConfig, false, false);
 
 		// Enforce comment prefix aliases within the global @SqlConfig.
 		enforceCommentPrefixAliases(globalAttributes);
@@ -130,6 +131,7 @@ class MergedSqlConfig {
 	}
 
 	/**
+	 * Get the bean name of the {@link javax.sql.DataSource}.
 	 * @see SqlConfig#dataSource()
 	 */
 	String getDataSource() {
@@ -137,6 +139,7 @@ class MergedSqlConfig {
 	}
 
 	/**
+	 * Get the bean name of the {@link org.springframework.transaction.PlatformTransactionManager}.
 	 * @see SqlConfig#transactionManager()
 	 */
 	String getTransactionManager() {
@@ -144,6 +147,7 @@ class MergedSqlConfig {
 	}
 
 	/**
+	 * Get the {@link TransactionMode}.
 	 * @see SqlConfig#transactionMode()
 	 */
 	TransactionMode getTransactionMode() {
@@ -151,6 +155,8 @@ class MergedSqlConfig {
 	}
 
 	/**
+	 * Get the encoding for the SQL scripts, if different from the platform
+	 * encoding.
 	 * @see SqlConfig#encoding()
 	 */
 	String getEncoding() {
@@ -158,6 +164,8 @@ class MergedSqlConfig {
 	}
 
 	/**
+	 * Get the character string used to separate individual statements within the
+	 * SQL scripts.
 	 * @see SqlConfig#separator()
 	 */
 	String getSeparator() {
@@ -165,6 +173,7 @@ class MergedSqlConfig {
 	}
 
 	/**
+	 * Get the prefixes that identify single-line comments within the SQL scripts.
 	 * @see SqlConfig#commentPrefixes()
 	 * @since 5.2
 	 */
@@ -173,6 +182,7 @@ class MergedSqlConfig {
 	}
 
 	/**
+	 * Get the start delimiter that identifies block comments within the SQL scripts.
 	 * @see SqlConfig#blockCommentStartDelimiter()
 	 */
 	String getBlockCommentStartDelimiter() {
@@ -180,6 +190,7 @@ class MergedSqlConfig {
 	}
 
 	/**
+	 * Get the end delimiter that identifies block comments within the SQL scripts.
 	 * @see SqlConfig#blockCommentEndDelimiter()
 	 */
 	String getBlockCommentEndDelimiter() {
@@ -187,6 +198,7 @@ class MergedSqlConfig {
 	}
 
 	/**
+	 * Get the {@link ErrorMode}.
 	 * @see SqlConfig#errorMode()
 	 */
 	ErrorMode getErrorMode() {
@@ -224,7 +236,7 @@ class MergedSqlConfig {
 
 	private static String getString(AnnotationAttributes attributes, String attributeName, String defaultValue) {
 		String value = attributes.getString(attributeName);
-		if ("".equals(value)) {
+		if (value.isEmpty()) {
 			value = defaultValue;
 		}
 		return value;

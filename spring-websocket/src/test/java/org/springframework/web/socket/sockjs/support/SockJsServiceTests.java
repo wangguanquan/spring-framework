@@ -19,11 +19,12 @@ package org.springframework.web.socket.sockjs.support;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -57,7 +58,7 @@ public class SockJsServiceTests extends AbstractHttpRequestTests {
 
 
 	@Override
-	@Before
+	@BeforeEach
 	public void setup() {
 		super.setup();
 		this.service = new TestSockJsService(new ThreadPoolTaskScheduler());
@@ -214,7 +215,7 @@ public class SockJsServiceTests extends AbstractHttpRequestTests {
 	@Test  // SPR-12283
 	public void handleInfoOptionsWithOriginAndCorsHeadersDisabled() {
 		this.servletRequest.addHeader(HttpHeaders.ORIGIN, "https://mydomain2.example");
-		this.service.setAllowedOrigins(Collections.singletonList("*"));
+		this.service.setAllowedOriginPatterns(Collections.singletonList("*"));
 		this.service.setSuppressCors(true);
 
 		this.servletRequest.addHeader(HttpHeaders.ACCESS_CONTROL_REQUEST_HEADERS, "Last-Modified");
@@ -222,10 +223,12 @@ public class SockJsServiceTests extends AbstractHttpRequestTests {
 		assertThat(this.service.getCorsConfiguration(this.servletRequest)).isNull();
 
 		this.service.setAllowedOrigins(Collections.singletonList("https://mydomain1.example"));
+		this.service.setAllowedOriginPatterns(Collections.emptyList());
 		resetResponseAndHandleRequest("OPTIONS", "/echo/info", HttpStatus.FORBIDDEN);
 		assertThat(this.service.getCorsConfiguration(this.servletRequest)).isNull();
 
 		this.service.setAllowedOrigins(Arrays.asList("https://mydomain1.example", "https://mydomain2.example", "http://mydomain3.example"));
+		this.service.setAllowedOriginPatterns(Collections.emptyList());
 		resetResponseAndHandleRequest("OPTIONS", "/echo/info", HttpStatus.NO_CONTENT);
 		assertThat(this.service.getCorsConfiguration(this.servletRequest)).isNull();
 	}

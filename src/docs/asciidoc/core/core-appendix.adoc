@@ -242,7 +242,7 @@ The following example shows a path being used against another bean, by name:
 
 [source,xml,indent=0,subs="verbatim,quotes"]
 ----
-	// target bean to be referenced by name
+	<!-- target bean to be referenced by name -->
 	<bean id="person" class="org.springframework.beans.TestBean" scope="prototype">
 		<property name="age" value="10"/>
 		<property name="spouse">
@@ -252,7 +252,7 @@ The following example shows a path being used against another bean, by name:
 		</property>
 	</bean>
 
-	// results in 11, which is the value of property 'spouse.age' of bean 'person'
+	<!-- results in 11, which is the value of property 'spouse.age' of bean 'person' -->
 	<bean id="theAge"
 			class="org.springframework.beans.factory.config.PropertyPathFactoryBean">
 		<property name="targetBeanName" value="person"/>
@@ -666,7 +666,8 @@ integrate such parsers into the Spring IoC container.
 To facilitate authoring configuration files that use a schema-aware XML editor,
 Spring's extensible XML configuration mechanism is based on XML Schema. If you are not
 familiar with Spring's current XML configuration extensions that come with the standard
-Spring distribution, you should first read the appendix entitled <<xsd-config>>.
+Spring distribution, you should first read the previous section on <<xsd-schemas>>.
+
 
 To create new XML configuration extensions:
 
@@ -860,14 +861,10 @@ we can parse our custom XML content, as you can see in the following example:
 
 	import java.text.SimpleDateFormat;
 
-	// We use the Spring-provided AbstractSingleBeanDefinitionParser to handle a lot of
-	// the basic grunt work of creating a single BeanDefinition.
-	public class SimpleDateFormatBeanDefinitionParser extends AbstractSingleBeanDefinitionParser {
+	public class SimpleDateFormatBeanDefinitionParser extends AbstractSingleBeanDefinitionParser { // <1>
 
 		protected Class getBeanClass(Element element) {
-			// We supply the AbstractSingleBeanDefinitionParser superclass with the type that our
-			// single BeanDefinition represents.
-			return SimpleDateFormat.class;
+			return SimpleDateFormat.class; // <2>
 		}
 
 		protected void doParse(Element element, BeanDefinitionBuilder bean) {
@@ -884,6 +881,11 @@ we can parse our custom XML content, as you can see in the following example:
 
 	}
 ----
+<1> We use the Spring-provided `AbstractSingleBeanDefinitionParser` to handle a lot of
+the basic grunt work of creating a single `BeanDefinition`.
+<2> We supply the `AbstractSingleBeanDefinitionParser` superclass with the type that our
+single `BeanDefinition` represents.
+
 [source,kotlin,indent=0,subs="verbatim,quotes",role="secondary"]
 .Kotlin
 ----
@@ -896,13 +898,9 @@ we can parse our custom XML content, as you can see in the following example:
 
 	import java.text.SimpleDateFormat
 
-	// We use the Spring-provided AbstractSingleBeanDefinitionParser to handle a lot of
-	// the basic grunt work of creating a single BeanDefinition.
-	class SimpleDateFormatBeanDefinitionParser : AbstractSingleBeanDefinitionParser() {
+	class SimpleDateFormatBeanDefinitionParser : AbstractSingleBeanDefinitionParser() { // <1>
 
-		override fun getBeanClass(element: Element): Class<*>? {
-			// We supply the AbstractSingleBeanDefinitionParser superclass with the type that our
-			// single BeanDefinition represents.
+		override fun getBeanClass(element: Element): Class<*>? { // <2>
 			return SimpleDateFormat::class.java
 		}
 
@@ -919,6 +917,11 @@ we can parse our custom XML content, as you can see in the following example:
 		}
 	}
 ----
+<1> We use the Spring-provided `AbstractSingleBeanDefinitionParser` to handle a lot of
+the basic grunt work of creating a single `BeanDefinition`.
+<2> We supply the `AbstractSingleBeanDefinitionParser` superclass with the type that our
+single `BeanDefinition` represents.
+
 
 In this simple case, this is all that we need to do. The creation of our single
 `BeanDefinition` is handled by the `AbstractSingleBeanDefinitionParser` superclass, as
@@ -1608,3 +1611,62 @@ http\://www.foo.example/schema/jcache=com.foo.JCacheNamespaceHandler
 # in 'META-INF/spring.schemas'
 http\://www.foo.example/schema/jcache/jcache.xsd=com/foo/jcache.xsd
 ----
+
+
+[[application-startup-steps]]
+== Application Startup Steps
+
+This part of the appendix lists the existing `StartupSteps` that the core container is instrumented with.
+
+WARNING: The name and detailed information about each startup step is not part of the public contract and
+is subject to change; this is considered as an implementation detail of the core container and will follow
+its behavior changes.
+
+.Application startup steps defined in the core container
+|===
+| Name| Description| Tags
+
+| `spring.beans.instantiate`
+| Instantiation of a bean and its dependencies.
+| `beanName` the name of the bean, `beanType` the type required at the injection point.
+
+| `spring.beans.smart-initialize`
+| Initialization of `SmartInitializingSingleton` beans.
+| `beanName` the name of the bean.
+
+| `spring.context.annotated-bean-reader.create`
+| Creation of the `AnnotatedBeanDefinitionReader`.
+|
+
+| `spring.context.base-packages.scan`
+| Scanning of base packages.
+| `packages` array of base packages for scanning.
+
+| `spring.context.beans.post-process`
+| Beans post-processing phase.
+|
+
+| `spring.context.bean-factory.post-process`
+| Invocation of the `BeanFactoryPostProcessor` beans.
+| `postProcessor` the current post-processor.
+
+| `spring.context.beandef-registry.post-process`
+| Invocation of the `BeanDefinitionRegistryPostProcessor` beans.
+| `postProcessor` the current post-processor.
+
+| `spring.context.component-classes.register`
+| Registration of component classes through `AnnotationConfigApplicationContext#register`.
+| `classes` array of given classes for registration.
+
+| `spring.context.config-classes.enhance`
+| Enhancement of configuration classes with CGLIB proxies.
+| `classCount` count of enhanced classes.
+
+| `spring.context.config-classes.parse`
+| Configuration classes parsing phase with the `ConfigurationClassPostProcessor`.
+| `classCount` count of processed classes.
+
+| `spring.context.refresh`
+| Application context refresh phase.
+|
+|===
